@@ -31,19 +31,53 @@ VisaFlow 将客户信息、材料要求与核验过程组织为可追踪的案�
 
 这里的动态裁剪是**领域动作与材料输入的运行时门禁**，提供商 MCP tool-list 仍使用稳定 schema。通用文件/执行工具不属于领域沙箱。完整模型上下文暂未自动捕获，modelInput 为调用者传入的真实内容或 null。
 
-## 快速运行
+## 启动方法
 
-需要 **Node.js 22.18+**；领域演示无需 API Key、数据库或桌面构建。
+需要 **Node.js 22.18+**（包含 npm）与 Git。以下命令可直接在 Windows PowerShell 中执行；已有源码时，先进入仓库根目录。
 
-```sh
+```powershell
 git clone https://github.com/siye566/visaflow.git
 cd visaflow
-node --experimental-strip-types packages/visa-domain/src/cli.ts demo
-node --experimental-strip-types packages/visa-domain/src/cli.ts demo name-conflict
-node --experimental-strip-types packages/visa-domain/src/cli.ts demo expired
 ```
 
-每次 demo 使用隔离临时目录，输出 caseDirectory 与实际核验结果。正常材料返回 pass；冲突与过期样例返回 blocked 并进入 remediation，保留问题字段、文件位置及规则引用。
+### 方式一：命令行演示（已验证）
+
+无需 API Key、数据库或安装桌面依赖。
+
+```powershell
+# 正常材料核验
+node --experimental-strip-types packages/visa-domain/src/cli.ts demo
+
+# 姓名冲突与证件过期
+node --experimental-strip-types packages/visa-domain/src/cli.ts demo name-conflict
+node --experimental-strip-types packages/visa-domain/src/cli.ts demo expired
+
+# 运行合成样例评估和 Trace Replay 检查
+node --experimental-strip-types packages/visa-domain/src/eval.ts
+```
+
+结果显示在终端。每次 demo 使用隔离临时目录，输出 `caseDirectory`，该目录保存材料、案件状态和 Trace。正常材料返回 `pass`；冲突与过期样例返回 `blocked` 并进入 `remediation`，保留问题字段、文件位置及规则引用。
+
+### 方式二：桌面界面（开发模式）
+
+在仓库根目录执行，使用项目指定的 Bun 版本，无需提前全局安装 Bun：
+
+```powershell
+# 安装完整项目依赖
+npm exec --yes --package=bun@1.3.10 -- bun install --frozen-lockfile
+
+# 确保 Electron 二进制已下载；此前使用 --ignore-scripts 安装时需要此步骤
+node node_modules/electron/install.js
+
+# 构建并启动桌面应用与开发服务
+npm exec --yes --package=bun@1.3.10 -- bun run electron:dev
+```
+
+首次启动需要下载依赖和运行时。启动后在应用内配置模型连接，再通过签证案件入口创建会话。终端保持运行，结束开发服务可按 `Ctrl+C`。
+
+桌面命令已核对仓库脚本，全仓类型检查已通过；完整桌面启动、打包及真实模型端到端会话尚未实际验证。默认规则只适用于虚构目的地 `DEMO`，请先用命令行演示确认领域流程。
+
+### 案件调用与批量回放
 
 ```sh
 # 当前案件信息
