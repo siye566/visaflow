@@ -40,7 +40,8 @@ for (const file of localeFiles) {
 
   const formatted = JSON.stringify(sorted, null, 2) + '\n'
 
-  if (formatted === original) continue
+  // Git checkouts may use CRLF on Windows; this is not key-order drift.
+  if (formatted === original.replace(/\r\n/g, '\n')) continue
 
   drift++
   if (checkOnly) {
