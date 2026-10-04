@@ -10,6 +10,16 @@ import {
 } from './tool-defs.ts';
 
 describe('session tool filtering helpers', () => {
+  it('VisaFlow schemas and safe mode preserve human-only decisions', () => {
+    const registry = getSessionToolRegistry();
+    const workflow = registry.get('visa_workflow')!;
+    expect(workflow.safeMode).toBe('block');
+    expect(registry.get('visa_case_read')!.readOnly).toBe(true);
+    expect(workflow.inputSchema.safeParse({ action: 'approve', role: 'reviewer' }).success).toBe(false);
+    expect(workflow.inputSchema.safeParse({ action: 'confirm_type' }).success).toBe(false);
+    expect(workflow.inputSchema.safeParse({ action: 'read', role: 'reviewer' }).success).toBe(false);
+    expect(workflow.inputSchema.safeParse({ action: 'verify', expectedRevision: 7 }).success).toBe(true);
+  });
   it('excludes developer feedback tool when includeDeveloperFeedback is false', () => {
     const defs = getSessionToolDefs({ includeDeveloperFeedback: false });
     const names = defs.map(d => d.name);

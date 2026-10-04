@@ -1,0 +1,14 @@
+{
+  "name": "@visaflow/domain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test src/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "demo": "node --experimental-strip-types src/cli.ts demo",
+    "eval": "node --experimental-strip-types src/eval.ts",
+    "screenshots": "node scripts/capture.mjs"
+  },
+  "devDependencies": { "@types/node": "^22.0.0", "typescript": "^5.9.0", "@playwright/test": "1.62.1" }
+}

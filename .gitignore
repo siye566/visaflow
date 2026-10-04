@@ -72,3 +72,11 @@ credentials.enc
 # act (local GitHub Actions runner)
 .secrets
 .actrc
+# VisaFlow private cases: actual documents, operator identity and trace bytes.
+visaflow-case.json
+visa-rule-pack.json
+visa-traces/
+.visaflow.lock
+visaflow-eval.json
+.visaflow-demo/
+*.tmp

@@ -44,6 +44,7 @@ import { handleArchiveSession } from './handlers/archive-session.ts';
 import { handleSendAgentMessage } from './handlers/send-agent-message.ts';
 import { handleListMessagingChannels, handleUnbindMessagingChannel } from './handlers/messaging.ts';
 import { handleVisaSearchRules } from './handlers/visa-search-rules.ts';
+import { handleVisaWorkflow, handleVisaCaseRead } from './handlers/visa-workflow.ts';
 
 // ============================================================
 // Canonical Zod Schemas
@@ -76,6 +77,14 @@ export const VisaSearchRulesSchema = z.object({
     .describe('Restrict to fragments relevant to one case node'),
   limit: z.number().int().min(1).max(10).optional().describe('Max results (default 5, max 10)'),
 });
+
+export const VisaWorkflowSchema = z.object({
+  action: z.enum(['read', 'intake', 'judge_type', 'checklist', 'parse_material', 'verify', 'fill_template'])
+    .describe('Only actions returned by visa_case_read.allowedActions may execute. Confirmation and approval are local human operations.'),
+  expectedRevision: z.number().int().min(0).optional().describe('Required for mutations; use revision from case read'),
+  input: z.record(z.unknown()).optional().describe('Intake fields or parse_material {kind,file}; file relative to session root. No inline material content.'),
+  modelInput: z.string().max(10000).optional().describe('Optional actual model input for private trace; omitted input is recorded as null, never synthesized'),
+}).strict();
 
 export const SourceTestSchema = z.object({
   sourceSlug: z.string().describe('The slug of the source to test'),
@@ -627,6 +636,8 @@ export const SESSION_TOOL_DEFS: SessionToolDef[] = [
   { name: 'list_messaging_channels', description: TOOL_DESCRIPTIONS.list_messaging_channels, inputSchema: ListMessagingChannelsSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleListMessagingChannels },
   { name: 'unbind_messaging_channel', description: TOOL_DESCRIPTIONS.unbind_messaging_channel, inputSchema: UnbindMessagingChannelSchema, executionMode: 'registry', safeMode: 'block', handler: handleUnbindMessagingChannel },
   // VisaFlow rule retrieval (read-only corpus search with provenance)
+  { name: 'visa_case_read', description: 'Read trusted VisaFlow case state, pinned Rule Pack and dynamically allowed actions. Start here before any workflow call.', inputSchema: z.object({}).strict(), executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleVisaCaseRead },
+  { name: 'visa_workflow', description: 'Execute a stage-gated VisaFlow action: intake, type judgment, checklist, source-file parsing, validity/consistency verification or template filling. Returns rule version, evidence references, file locations and status. Human confirmation/approval cannot be granted by this tool. State writes are managed by the engine.', inputSchema: VisaWorkflowSchema, executionMode: 'registry', safeMode: 'block', handler: handleVisaWorkflow },
   { name: 'visa_search_rules', description: TOOL_DESCRIPTIONS.visa_search_rules, inputSchema: VisaSearchRulesSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleVisaSearchRules },
 ];
 

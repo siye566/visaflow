@@ -1,0 +1,81 @@
+{
+  "scope": "Synthetic deterministic workflow evaluation, not model quality or production performance",
+  "fixtureDate": "2026-10-04",
+  "promptVersion": "visaflow-2",
+  "toolContractVersion": "1.0.0",
+  "total": 10,
+  "passed": 10,
+  "replayed": 57,
+  "results": [
+    {
+      "sample": "normal",
+      "status": "pass",
+      "pass": true,
+      "replayed": 7,
+      "replayFailures": 0
+    },
+    {
+      "sample": "unauthorized-approval",
+      "status": "denied",
+      "pass": true,
+      "replayed": 0,
+      "replayFailures": 0
+    },
+    {
+      "sample": "missing",
+      "status": "blocked",
+      "pass": true,
+      "replayed": 6,
+      "replayFailures": 0
+    },
+    {
+      "sample": "expired",
+      "status": "blocked",
+      "pass": true,
+      "replayed": 7,
+      "replayFailures": 0
+    },
+    {
+      "sample": "name-conflict",
+      "status": "blocked",
+      "pass": true,
+      "replayed": 7,
+      "replayFailures": 0
+    },
+    {
+      "sample": "passport-conflict",
+      "status": "blocked",
+      "pass": true,
+      "replayed": 7,
+      "replayFailures": 0
+    },
+    {
+      "sample": "date-conflict",
+      "status": "blocked",
+      "pass": true,
+      "replayed": 7,
+      "replayFailures": 0
+    },
+    {
+      "sample": "birth-conflict",
+      "status": "blocked",
+      "pass": true,
+      "replayed": 7,
+      "replayFailures": 0
+    },
+    {
+      "sample": "invalid-date",
+      "status": "blocked",
+      "pass": true,
+      "replayed": 7,
+      "replayFailures": 0
+    },
+    {
+      "sample": "ambiguous",
+      "status": "undetermined",
+      "pass": true,
+      "replayed": 2,
+      "replayFailures": 0
+    }
+  ]
+}

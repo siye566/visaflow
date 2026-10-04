@@ -1,0 +1,40 @@
+name: VisaFlow domain
+on:
+  push:
+    branches: [main]
+    paths: ['packages/visa-domain/**', 'packages/session-tools-core/**', 'packages/shared/src/prompts/**', '.github/workflows/visaflow.yml']
+  pull_request:
+    paths: ['packages/visa-domain/**', 'packages/session-tools-core/**', 'packages/shared/src/prompts/**', '.github/workflows/visaflow.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: packages/visa-domain/package-lock.json
+      - run: npm ci --ignore-scripts --workspaces=false
+        working-directory: packages/visa-domain
+      - run: npm run typecheck
+        working-directory: packages/visa-domain
+      - run: node --experimental-strip-types --test packages/visa-domain/src/*.test.ts
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.10'
+      - name: Install MCP registry dependencies without scripts
+        run: npm install --ignore-scripts --workspaces=false --package-lock=false
+        working-directory: packages/session-tools-core
+      - name: Validate retrieval, tool schema and safe-mode registry
+        run: bun test packages/session-tools-core/src/handlers/visa-search-rules.test.ts packages/session-tools-core/src/tool-defs-filtering.test.ts
+      - name: Re-evaluate fixtures and replay traces after rule/prompt/tool changes
+        run: node --experimental-strip-types packages/visa-domain/src/eval.ts visaflow-eval.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visaflow-evaluation
+          path: visaflow-eval.json
