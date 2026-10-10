@@ -10,6 +10,8 @@ VisaFlow 将客户信息、材料要求与核验过程组织为可追踪的案�
 
 公开版本使用合成材料与虚构目的地 DEMO。默认 Rule Pack 是工程样例；实际使用需要经人工核验的规则包。项目提供材料预审，签证签发由有权机关决定。
 
+[English quickstart & failure cookbook](docs/quickstart.en.md)。独立 CLI 提供 `doctor` 环境检查和 `explain <ERROR_CODE>` 修复建议；失败以 JSON 写到 stderr，成功结果仍写到 stdout，批量中断会报告已完成请求数。无需先安装完整 Electron 产品或提供模型密钥。
+
 ## 运行展示
 
 以下为**实际 CLI 输出整理成的文档视图**，使用合成样例，未调用模型。桌面案件面板已有实现，截图展示的是领域模块运行结果。
@@ -143,3 +145,4 @@ npm run eval
 ## 许可
 
 Apache-2.0。项目保留运行时及相关依赖的 [LICENSE](LICENSE)、[NOTICE](NOTICE) 与法定署名信息。
+
