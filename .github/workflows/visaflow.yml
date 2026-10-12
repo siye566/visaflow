@@ -31,9 +31,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.10'
-      - name: Install MCP registry dependencies without scripts
-        run: npm install --ignore-scripts --workspaces=false --package-lock=false
-        working-directory: packages/session-tools-core
+      - name: Install locked host and MCP build dependencies without scripts
+        run: bun install --frozen-lockfile --ignore-scripts
       - name: Validate retrieval, tool schema and safe-mode registry
         run: bun test packages/session-tools-core/src/handlers/visa-search-rules.test.ts packages/session-tools-core/src/tool-defs-filtering.test.ts
       - name: Verify bundled Node and Bun document adapters
