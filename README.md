@@ -1,6 +1,6 @@
 # VisaFlow
 
-**签证材料预审与流程编排 Agent** · 版本化规则 · 五阶段 Workflow · MCP / CLI · Trace Replay
+**签证材料预审与流程编排 Agent** · 版本化规则 · PDF / 本地 OCR · MCP / CLI · Trace Replay
 
 [![VisaFlow domain](https://github.com/siye566/visaflow/actions/workflows/visaflow.yml/badge.svg)](https://github.com/siye566/visaflow/actions/workflows/visaflow.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
@@ -18,6 +18,8 @@ VisaFlow 将客户信息、材料要求与核验过程组织为可追踪的案�
 
 ![合成样例评估与调用回放结果](docs/screenshots/evaluation.png)
 
+![PDF 与本地 OCR 实际提取、复核门禁及证据定位](docs/screenshots/pdf-ocr.png)
+
 ## 核心实现
 
 | 能力 | 实现与证据 |
@@ -25,6 +27,7 @@ VisaFlow 将客户信息、材料要求与核验过程组织为可追踪的案�
 | 版本化 Rule Pack | 类型条件、材料字段、有效期、适用范围、来源、生效日期、SOP、模板与错误案例；案件固定完整规则哈希 |
 | 五阶段 Workflow | 采集 → 类型判断 → 清单 → 核验 → 补正；动态返回当前 allowedActions，执行器拒绝越阶段调用；按类型裁剪材料 kind |
 | MCP 材料工具 | 统一注册的 visa_case_read / visa_workflow；读取信息、规则检索、JSON/TXT 解析、清单、日期与跨文件核验、文本模板填充 |
+| PDF / 本地 OCR | 文本 PDF；扫描/混合 PDF、PNG/JPEG 中英文识别；原件哈希、页/行、bbox、置信度及人工复核门禁；[实现与运行报告](docs/pdf-ocr.md) |
 | 人工确认门禁 | 类型确认与材料预审审批由本地人工 CLI 执行，MCP Agent 无权替代；补传材料使旧核验/审批失效 |
 | CLI / 批量回放 | 单次 JSON 请求、JSONL 批量调用，保存参数、证据、规则与审批状态，内存 Trace Replay 检查版本和结果漂移 |
 | Eval / CI | 正常、缺失、过期、姓名/证件号/出生日期/出行日期冲突、非法日期、模糊类型与越权样例 |
@@ -58,7 +61,21 @@ node --experimental-strip-types packages/visa-domain/src/eval.ts
 
 结果显示在终端。每次 demo 使用隔离临时目录，输出 `caseDirectory`，该目录保存材料、案件状态和 Trace。正常材料返回 `pass`；冲突与过期样例返回 `blocked` 并进入 `remediation`，保留问题字段、文件位置及规则引用。
 
+### PDF / OCR 演示（已验证）
+
+```powershell
+cd packages/visa-domain
+npm ci --ignore-scripts --workspaces=false
+npm run setup:ocr
+cd ../..
+node --experimental-strip-types packages/visa-domain/scripts/demo-pdf-ocr.ts
+```
+
+无需云 OCR Key、Python 或系统 Tesseract。安装模型后本地提取 PDF/图片；演示输出实际字段、坐标、核验与回放结果。OCR 材料须本地人工复核，演示确认仅针对合成样例。[材料格式、复核与错误处理](docs/pdf-ocr.md)。
+
 ### 方式二：桌面界面（开发模式）
+
+请先完成上面的领域依赖安装和 `setup:ocr`，构建时将复制 PDF/OCR worker、模型与原生依赖。
 
 在仓库根目录执行，使用项目指定的 Bun 版本，无需提前全局安装 Bun：
 
@@ -98,7 +115,9 @@ flowchart LR
     C[CLI / JSONL] --> D[VisaFlow 领域执行器]
     B --> D
     R[已审核版本化 Rule Pack] --> D
-    F[案件目录 JSON / TXT 材料] --> D
+    F[案件目录 JSON / TXT / PDF / 图片] --> X[本地 PDF / OCR 提取]
+    X --> D
+    H[操作员复核 OCR 字段] --> D
     D --> S[案件状态与证据引用]
     D --> T[私有 Trace]
     T --> E[Replay / Eval / CI]
@@ -108,6 +127,7 @@ flowchart LR
 | 入口 | 内容 |
 | --- | --- |
 | [packages/visa-domain/src](packages/visa-domain/src) | Rule Pack、阶段门禁、字段核验、持久化、CLI、Eval |
+| [document.ts](packages/visa-domain/src/document.ts) | 本地 PDF/OCR 进程适配、标签映射与页/行证据 |
 | [visa-workflow.ts](packages/session-tools-core/src/handlers/visa-workflow.ts) | 宿主 sessionPath 与固定 agent 身份适配 |
 | [visa-search-rules.ts](packages/session-tools-core/src/handlers/visa-search-rules.ts) | 原有关键词规则检索与来源引用 |
 | [tool-defs.ts](packages/session-tools-core/src/tool-defs.ts) | MCP / Claude / Pi 共用工具注册与 schema |
@@ -126,13 +146,13 @@ npm test
 npm run eval
 ```
 
-当前本地结果：**23 项领域/适配器/CLI 测试通过，10/10 合成评估样例符合预期，57 条调用记录回放一致**。另有 22 项工具注册、检索及相关回归测试通过，CI 会在 Rule Pack、Prompt 或工具修改后重跑。[可复现评估报告](docs/evaluation-report.json) · [GitHub Actions](https://github.com/siye566/visaflow/actions/workflows/visaflow.yml)。
+当前本地结果：**34 项领域/适配器/CLI/PDF/OCR 测试通过，Node/Bun 打包处理器验证通过，10/10 合成评估样例符合预期，57 条领域调用记录回放一致**。另有 13 项工具注册、检索测试通过。[领域评估报告](docs/evaluation-report.json) · [PDF/OCR 实际运行报告](docs/pdf-ocr-report.json) · [GitHub Actions](https://github.com/siye566/visaflow/actions/workflows/visaflow.yml)。
 
 这些数字衡量确定性实现与工程门禁，不代表 LLM 准确率、真实材料覆盖率或生产性能。公开样例日期固定为 2026-10-04。修改版本常量后旧 Trace 会报告 drift，需重新评估。
 
 ## 当前边界
 
-- 支持扁平字段 JSON 与 key:value TXT；PDF / OCR / 扫描件解析尚未接入。
+- 支持 JSON/TXT，以及有明确中英文标签的 PDF/扫描 PDF/PNG/JPEG；OCR 后须人工复核。护照版面/MRZ、手写和任意复杂表格尚未实现，详见 [PDF/OCR 边界](docs/pdf-ocr.md)。
 - 关键词检索已实现；向量检索不在当前版本中。原有检索语料未进行现行政策时效性核验。
 - 人工角色是本机 CLI 操作员声明；远程身份认证与多用户权限服务尚未实现。
 - 默认规则仅用于虚构目的地 DEMO；真实国家返回类型未确定，不使用样例规则给出真实结论。

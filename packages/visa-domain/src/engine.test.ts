@@ -103,10 +103,10 @@ test('path traversal and symlink escape cannot access external document', async 
   await symlink(outside, join(root, 'link'), process.platform === 'win32' ? 'junction' : 'dir');
   await assert.rejects(confinedFile(root, 'link/private.json'), /PATH_FORBIDDEN/);
 });
-test('unsupported PDF is rejected; no invented OCR evidence', async t => {
+test('corrupt PDF is rejected; no invented extraction evidence', async t => {
   const root = await temp(t); const result = await demo(root);
   await writeFile(join(root, 'scan.pdf'), '%PDF-1.7 fake bytes');
-  await assert.rejects(runCase(root, {action: 'parse_material', expectedRevision: result.state.revision, input: {kind: 'passport', file: 'scan.pdf'}}, agent, '2026-10-04'), /UNSUPPORTED_FORMAT/);
+  await assert.rejects(runCase(root, {action: 'parse_material', expectedRevision: result.state.revision, input: {kind: 'passport', file: 'scan.pdf'}}, agent, '2026-10-04'), /DOCUMENT_INVALID/);
 });
 test('non-demo destination and future/draft/changed rules fail closed', () => {
   const intake = execute(initialState(), {action: 'intake', expectedRevision: 0, input: {...SAMPLE_INTAKE, destination: 'US'}}, agent);

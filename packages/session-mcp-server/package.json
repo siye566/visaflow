@@ -9,7 +9,7 @@
     "session-mcp-server": "./dist/index.js"
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir=dist --target=node --format=cjs",
+    "build": "bun build src/index.ts --outdir=dist --target=node --format=cjs && node ../visa-domain/scripts/copy-runtime.mjs dist",
     "dev": "bun run src/index.ts"
   },
   "dependencies": {

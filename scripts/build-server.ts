@@ -46,6 +46,7 @@ import {
   symlinkSync,
 } from 'fs';
 import { $ } from 'bun';
+import { copyDocumentRuntime } from '../packages/visa-domain/scripts/copy-runtime.mjs';
 import {
   type Platform,
   type Arch,
@@ -178,6 +179,7 @@ function assembleResources(config: ServerBuildConfig): void {
     const destSessionServer = join(destResources, 'session-mcp-server');
     mkdirSync(destSessionServer, { recursive: true });
     copyFileSync(sessionServerDist, join(destSessionServer, 'index.js'));
+    copyDocumentRuntime(destSessionServer, {platform: config.platform, arch: config.arch});
   }
 }
 

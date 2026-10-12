@@ -82,7 +82,7 @@ export const VisaWorkflowSchema = z.object({
   action: z.enum(['read', 'intake', 'judge_type', 'checklist', 'parse_material', 'verify', 'fill_template'])
     .describe('Only actions returned by visa_case_read.allowedActions may execute. Confirmation and approval are local human operations.'),
   expectedRevision: z.number().int().min(0).optional().describe('Required for mutations; use revision from case read'),
-  input: z.record(z.unknown()).optional().describe('Intake fields or parse_material {kind,file}; file relative to session root. No inline material content.'),
+  input: z.record(z.unknown()).optional().describe('Intake fields or parse_material {kind,file}; local JSON/TXT/PDF/PNG/JPEG file relative to session root. No inline material content. OCR requires local human review.'),
   modelInput: z.string().max(10000).optional().describe('Optional actual model input for private trace; omitted input is recorded as null, never synthesized'),
 }).strict();
 

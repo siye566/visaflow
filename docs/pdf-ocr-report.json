@@ -1,0 +1,582 @@
+{
+  "scope": "Actual local PDF/OCR runs on synthetic labelled materials; simulated human review; no model calls or production accuracy claim",
+  "fixtureDate": "2026-10-04",
+  "replayed": 21,
+  "snapshots": [
+    {
+      "sample": "passport-text.pdf",
+      "status": "pass",
+      "methods": [
+        "pdf-text"
+      ],
+      "findings": [],
+      "fields": [
+        {
+          "name": "name",
+          "value": "LIN DEMO",
+          "location": "page:1/line:2",
+          "bbox": [
+            50,
+            96,
+            178.912,
+            112
+          ],
+          "sourceText": "Name: LIN DEMO",
+          "method": "pdf-text"
+        },
+        {
+          "name": "passportNumber",
+          "value": "E00000001",
+          "location": "page:1/line:3",
+          "bbox": [
+            50,
+            136,
+            262.5600000000001,
+            152
+          ],
+          "sourceText": "Passport number: E00000001",
+          "method": "pdf-text"
+        },
+        {
+          "name": "birthDate",
+          "value": "1998-01-02",
+          "location": "page:1/line:4",
+          "bbox": [
+            50,
+            176,
+            227.872,
+            192
+          ],
+          "sourceText": "Date of birth: 1998-01-02",
+          "method": "pdf-text"
+        },
+        {
+          "name": "expiryDate",
+          "value": "2030-12-31",
+          "location": "page:1/line:5",
+          "bbox": [
+            50,
+            216,
+            220.75200000000007,
+            232
+          ],
+          "sourceText": "Expiry date: 2030-12-31",
+          "method": "pdf-text"
+        },
+        {
+          "name": "departureDate",
+          "value": "2026-12-01",
+          "location": "page:1/line:6",
+          "bbox": [
+            50,
+            256,
+            247.44000000000005,
+            272
+          ],
+          "sourceText": "Departure date: 2026-12-01",
+          "method": "pdf-text"
+        }
+      ],
+      "review": "not required",
+      "sourceHash": "88312405a047d911092e1ab6dbba71872556f3da25ef38b94dd539341de2d30b"
+    },
+    {
+      "sample": "passport-scan.pdf",
+      "status": "blocked",
+      "methods": [
+        "ocr"
+      ],
+      "findings": [
+        "passport:OCR_REVIEW_REQUIRED"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "value": "LIN DEMO",
+          "location": "page:1/line:2",
+          "bbox": [
+            84,
+            199,
+            432,
+            230
+          ],
+          "sourceText": "Name: LIN DEMO",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "passportNumber",
+          "value": "E00000001",
+          "location": "page:1/line:3",
+          "bbox": [
+            84,
+            312,
+            659,
+            355
+          ],
+          "sourceText": "Passport number: E00000001",
+          "method": "ocr",
+          "confidence": 92
+        },
+        {
+          "name": "birthDate",
+          "value": "1998-01-02",
+          "location": "page:1/line:4",
+          "bbox": [
+            84,
+            426,
+            590,
+            460
+          ],
+          "sourceText": "Date of birth: 1998-01-02",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "expiryDate",
+          "value": "2030-12-31",
+          "location": "page:1/line:5",
+          "bbox": [
+            84,
+            542,
+            551,
+            585
+          ],
+          "sourceText": "Expiry date: 2030-12-31",
+          "method": "ocr",
+          "confidence": 95
+        },
+        {
+          "name": "departureDate",
+          "value": "2026-12-01",
+          "location": "page:1/line:6",
+          "bbox": [
+            84,
+            657,
+            632,
+            700
+          ],
+          "sourceText": "Departure date: 2026-12-01",
+          "method": "ocr",
+          "confidence": 96
+        }
+      ],
+      "review": "required",
+      "sourceHash": "9ec41818c793a6080db7af34464f218c2a2feb2ded9e413102653604a2282e3a"
+    },
+    {
+      "sample": "passport-scan.pdf after simulated review",
+      "status": "pass",
+      "methods": [
+        "ocr"
+      ],
+      "findings": [],
+      "fields": [
+        {
+          "name": "name",
+          "value": "LIN DEMO",
+          "location": "page:1/line:2",
+          "bbox": [
+            84,
+            199,
+            432,
+            230
+          ],
+          "sourceText": "Name: LIN DEMO",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "passportNumber",
+          "value": "E00000001",
+          "location": "page:1/line:3",
+          "bbox": [
+            84,
+            312,
+            659,
+            355
+          ],
+          "sourceText": "Passport number: E00000001",
+          "method": "ocr",
+          "confidence": 92
+        },
+        {
+          "name": "birthDate",
+          "value": "1998-01-02",
+          "location": "page:1/line:4",
+          "bbox": [
+            84,
+            426,
+            590,
+            460
+          ],
+          "sourceText": "Date of birth: 1998-01-02",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "expiryDate",
+          "value": "2030-12-31",
+          "location": "page:1/line:5",
+          "bbox": [
+            84,
+            542,
+            551,
+            585
+          ],
+          "sourceText": "Expiry date: 2030-12-31",
+          "method": "ocr",
+          "confidence": 95
+        },
+        {
+          "name": "departureDate",
+          "value": "2026-12-01",
+          "location": "page:1/line:6",
+          "bbox": [
+            84,
+            657,
+            632,
+            700
+          ],
+          "sourceText": "Departure date: 2026-12-01",
+          "method": "ocr",
+          "confidence": 96
+        }
+      ],
+      "review": "simulated local reviewer (synthetic only)",
+      "sourceHash": "9ec41818c793a6080db7af34464f218c2a2feb2ded9e413102653604a2282e3a"
+    },
+    {
+      "sample": "passport.png",
+      "status": "blocked",
+      "methods": [
+        "ocr"
+      ],
+      "findings": [
+        "passport:OCR_REVIEW_REQUIRED"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "value": "LIN DEMO",
+          "location": "page:1/line:2",
+          "bbox": [
+            84,
+            199,
+            432,
+            230
+          ],
+          "sourceText": "Name: LIN DEMO",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "passportNumber",
+          "value": "E00000001",
+          "location": "page:1/line:3",
+          "bbox": [
+            84,
+            312,
+            659,
+            355
+          ],
+          "sourceText": "Passport number: E00000001",
+          "method": "ocr",
+          "confidence": 92
+        },
+        {
+          "name": "birthDate",
+          "value": "1998-01-02",
+          "location": "page:1/line:4",
+          "bbox": [
+            84,
+            426,
+            590,
+            460
+          ],
+          "sourceText": "Date of birth: 1998-01-02",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "expiryDate",
+          "value": "2030-12-31",
+          "location": "page:1/line:5",
+          "bbox": [
+            84,
+            542,
+            551,
+            585
+          ],
+          "sourceText": "Expiry date: 2030-12-31",
+          "method": "ocr",
+          "confidence": 95
+        },
+        {
+          "name": "departureDate",
+          "value": "2026-12-01",
+          "location": "page:1/line:6",
+          "bbox": [
+            84,
+            657,
+            632,
+            700
+          ],
+          "sourceText": "Departure date: 2026-12-01",
+          "method": "ocr",
+          "confidence": 96
+        }
+      ],
+      "review": "required",
+      "sourceHash": "3d89f03d12f6af061a73d4707dc3d15ec9d7cf7e1fd35726f1d764c05c39f33a"
+    },
+    {
+      "sample": "passport.png after simulated review",
+      "status": "pass",
+      "methods": [
+        "ocr"
+      ],
+      "findings": [],
+      "fields": [
+        {
+          "name": "name",
+          "value": "LIN DEMO",
+          "location": "page:1/line:2",
+          "bbox": [
+            84,
+            199,
+            432,
+            230
+          ],
+          "sourceText": "Name: LIN DEMO",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "passportNumber",
+          "value": "E00000001",
+          "location": "page:1/line:3",
+          "bbox": [
+            84,
+            312,
+            659,
+            355
+          ],
+          "sourceText": "Passport number: E00000001",
+          "method": "ocr",
+          "confidence": 92
+        },
+        {
+          "name": "birthDate",
+          "value": "1998-01-02",
+          "location": "page:1/line:4",
+          "bbox": [
+            84,
+            426,
+            590,
+            460
+          ],
+          "sourceText": "Date of birth: 1998-01-02",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "expiryDate",
+          "value": "2030-12-31",
+          "location": "page:1/line:5",
+          "bbox": [
+            84,
+            542,
+            551,
+            585
+          ],
+          "sourceText": "Expiry date: 2030-12-31",
+          "method": "ocr",
+          "confidence": 95
+        },
+        {
+          "name": "departureDate",
+          "value": "2026-12-01",
+          "location": "page:1/line:6",
+          "bbox": [
+            84,
+            657,
+            632,
+            700
+          ],
+          "sourceText": "Departure date: 2026-12-01",
+          "method": "ocr",
+          "confidence": 96
+        }
+      ],
+      "review": "simulated local reviewer (synthetic only)",
+      "sourceHash": "3d89f03d12f6af061a73d4707dc3d15ec9d7cf7e1fd35726f1d764c05c39f33a"
+    },
+    {
+      "sample": "passport.jpg",
+      "status": "blocked",
+      "methods": [
+        "ocr"
+      ],
+      "findings": [
+        "passport:OCR_REVIEW_REQUIRED"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "value": "LIN DEMO",
+          "location": "page:1/line:2",
+          "bbox": [
+            84,
+            199,
+            432,
+            230
+          ],
+          "sourceText": "Name: LIN DEMO",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "passportNumber",
+          "value": "E00000001",
+          "location": "page:1/line:3",
+          "bbox": [
+            84,
+            312,
+            659,
+            355
+          ],
+          "sourceText": "Passport number: E00000001",
+          "method": "ocr",
+          "confidence": 92
+        },
+        {
+          "name": "birthDate",
+          "value": "1998-01-02",
+          "location": "page:1/line:4",
+          "bbox": [
+            84,
+            426,
+            590,
+            460
+          ],
+          "sourceText": "Date of birth: 1998-01-02",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "expiryDate",
+          "value": "2030-12-31",
+          "location": "page:1/line:5",
+          "bbox": [
+            84,
+            542,
+            551,
+            585
+          ],
+          "sourceText": "Expiry date: 2030-12-31",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "departureDate",
+          "value": "2026-12-01",
+          "location": "page:1/line:6",
+          "bbox": [
+            84,
+            657,
+            632,
+            700
+          ],
+          "sourceText": "Departure date: 2026-12-01",
+          "method": "ocr",
+          "confidence": 96
+        }
+      ],
+      "review": "required",
+      "sourceHash": "34dc904d01cfd65a7b52c222a6a948a1e512ad5f41fb01ae5faebeed0be10ae4"
+    },
+    {
+      "sample": "passport.jpg after simulated review",
+      "status": "pass",
+      "methods": [
+        "ocr"
+      ],
+      "findings": [],
+      "fields": [
+        {
+          "name": "name",
+          "value": "LIN DEMO",
+          "location": "page:1/line:2",
+          "bbox": [
+            84,
+            199,
+            432,
+            230
+          ],
+          "sourceText": "Name: LIN DEMO",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "passportNumber",
+          "value": "E00000001",
+          "location": "page:1/line:3",
+          "bbox": [
+            84,
+            312,
+            659,
+            355
+          ],
+          "sourceText": "Passport number: E00000001",
+          "method": "ocr",
+          "confidence": 92
+        },
+        {
+          "name": "birthDate",
+          "value": "1998-01-02",
+          "location": "page:1/line:4",
+          "bbox": [
+            84,
+            426,
+            590,
+            460
+          ],
+          "sourceText": "Date of birth: 1998-01-02",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "expiryDate",
+          "value": "2030-12-31",
+          "location": "page:1/line:5",
+          "bbox": [
+            84,
+            542,
+            551,
+            585
+          ],
+          "sourceText": "Expiry date: 2030-12-31",
+          "method": "ocr",
+          "confidence": 96
+        },
+        {
+          "name": "departureDate",
+          "value": "2026-12-01",
+          "location": "page:1/line:6",
+          "bbox": [
+            84,
+            657,
+            632,
+            700
+          ],
+          "sourceText": "Departure date: 2026-12-01",
+          "method": "ocr",
+          "confidence": 96
+        }
+      ],
+      "review": "simulated local reviewer (synthetic only)",
+      "sourceHash": "34dc904d01cfd65a7b52c222a6a948a1e512ad5f41fb01ae5faebeed0be10ae4"
+    }
+  ]
+}

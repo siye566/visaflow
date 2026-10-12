@@ -57,7 +57,7 @@ node --experimental-strip-types packages/visa-domain/src/cli.ts call <case-dir> 
 {"action":"parse_material","expectedRevision":4,"input":{"kind":"passport","file":"passport.json"}}
 ```
 
-源文件为扁平字符串对象，或 TXT 每行 `fieldName: value`。JSON 位置为 `$.fieldName`，TXT 为 `line:N`。PDF、图片 OCR 和扫描件目前拒绝，需接入真实解析适配器后再宣称支持。
+源文件可为扁平 JSON、key:value TXT，以及有明确标签的 PDF/扫描 PDF/PNG/JPEG。PDF/图片位置为 `page:N/line:N` 并含 bbox。OCR 材料在核验时要求本地 applicant/reviewer 用 `review_material` 核对字段并确认源文件哈希；MCP Agent 无权复核。[安装、格式与调用示例](pdf-ocr.md)。
 
 本地审批 `approve` 仅在 verification=pass 时允许，CLI 需显式指定 `reviewer <operator-name>`。MCP 角色固定为 agent，不能确认类型或审批。CLI 角色是本机操作员声明，不是远程身份认证。
 
@@ -69,7 +69,7 @@ node --experimental-strip-types packages/visa-domain/src/eval.ts
 node --experimental-strip-types --test packages/visa-domain/src/*.test.ts
 ```
 
-Trace 保存调用参数、执行前快照、源文件字节、证据引用、规则版本/哈希、Prompt/Tool Contract 版本与审批状态。modelInput 只有调用者传入真实内容时才保存，否则为 null；尚未自动捕获每个模型提供商的完整上下文。read 不创建 Trace。
+Trace 保存调用参数、执行前快照、提取文本/页/行、原文件字节哈希、证据引用、规则版本/哈希、Prompt/Tool Contract 版本与审批状态。PDF/图片二进制不复制到 Trace。modelInput 只有调用者传入真实内容时才保存，否则为 null；尚未自动捕获每个模型提供商的完整上下文。read 不创建 Trace。
 
 Replay 在内存中重放领域调用，不重新读取生产文件或执行审批副作用。内容、规则版本、Prompt 版本、Tool Contract 版本不一致将报告 drift；文件 I/O 错误的环境无法仅凭内存 Trace 重建，会明确显示回放差异。CI 在规则、工具、Prompt 变更时重新执行样例和回放，上传评估报告。
 

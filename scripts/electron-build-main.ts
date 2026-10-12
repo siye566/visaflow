@@ -5,7 +5,8 @@
 
 import { spawn } from "bun";
 import { existsSync, readFileSync, statSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { copyDocumentRuntime } from '../packages/visa-domain/scripts/copy-runtime.mjs';
 
 const ROOT_DIR = join(import.meta.dir, "..");
 const DIST_DIR = join(ROOT_DIR, "apps/electron/dist");
@@ -206,6 +207,7 @@ async function buildSessionServer(): Promise<void> {
   }
 
   console.log("✅ Session server built successfully");
+  copyDocumentRuntime(distDir);
 }
 
 // Build the Pi Agent Server (subprocess for Pi SDK sessions)
@@ -255,6 +257,7 @@ async function buildPiAgentServer(): Promise<void> {
   }
 
   console.log("✅ Pi agent server built successfully");
+  copyDocumentRuntime(distDir);
 }
 
 // Build the WhatsApp worker (Baileys-backed subprocess spawned by WhatsAppAdapter)
@@ -394,6 +397,7 @@ async function main(): Promise<void> {
   }
 
   console.log("✅ Build complete and verified");
+  copyDocumentRuntime(dirname(OUTPUT_FILE));
   process.exit(0);
 }
 

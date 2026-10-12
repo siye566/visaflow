@@ -1,8 +1,9 @@
 import { mkdir, readFile, writeFile, rename, unlink, open, realpath, lstat } from 'node:fs/promises';
 import { resolve, relative, isAbsolute } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { execute, initialState, fingerprint, PROMPT_VERSION, TOOL_CONTRACT_VERSION, type Request, type Principal, type CaseState, type Result, type DocumentInput } from './engine.ts';
+import { execute, validateRequest, initialState, fingerprint, PROMPT_VERSION, TOOL_CONTRACT_VERSION, type Request, type Principal, type CaseState, type Result, type DocumentInput } from './engine.ts';
 import { DEMO_RULE_PACK, validateRulePack, type RulePack } from './rules.ts';
+import { extractDocument, sourceHash, MAX_DOCUMENT_BYTES } from './document.ts';
 
 export interface Trace {
   schemaVersion: 1; request: Request; principal: Principal; today: string;
@@ -58,18 +59,23 @@ export async function runCase(root: string, request: Request, principal: Princip
       success: false, toolCall: {name: 'visa_workflow', arguments: request}, modelInput: request.modelInput ?? null};
     let result: Result | undefined;
     try {
-      if (['verify', 'fill_template', 'approve'].includes(request.action)) {
+      validateRequest(before, request, principal, pack, today);
+      if (['verify', 'fill_template', 'approve', 'review_material'].includes(request.action)) {
         for (const material of before.materials) {
           const path = await confinedFile(base, material.file);
-          if ((await lstat(path)).size > 1024 * 1024 || fingerprint(await readFile(path, 'utf8')) !== material.hash) throw new Error('MATERIAL_CHANGED: parse updated source again');
+          if ((await lstat(path)).size > MAX_DOCUMENT_BYTES) throw new Error('MATERIAL_CHANGED: parse updated source again');
+          const bytes = await readFile(path);
+          const hash = material.hashScheme === 'sha256-bytes' ? sourceHash(bytes) : fingerprint(bytes.toString('utf8'));
+          if (hash !== material.hash) throw new Error('MATERIAL_CHANGED: parse updated source again');
         }
       }
       if (request.action === 'parse_material') {
         if (typeof request.input?.file !== 'string') throw new Error('DOCUMENT_REQUIRED');
+        if (!before.checklist.some(m => m.id === request.input?.kind)) throw new Error('DOCUMENT_REQUIRED: type-specific material kind required');
         const path = await confinedFile(base, request.input.file);
         const size = (await lstat(path)).size;
-        if (size > 1024 * 1024) throw new Error('DOCUMENT_TOO_LARGE');
-        document = {file: request.input.file, content: await readFile(path, 'utf8')};
+        if (size > MAX_DOCUMENT_BYTES) throw new Error('DOCUMENT_TOO_LARGE');
+        document = await extractDocument(request.input.file, await readFile(path));
         trace.document = document;
       }
       result = execute(before, request, principal, pack, today, document);
@@ -86,7 +92,7 @@ export async function runCase(root: string, request: Request, principal: Princip
     return result;
   } finally { await handle.close(); await unlink(lock); }
 }
-/** Pure replay: no state mutation, file writes or external tools. Captured bytes are used. */
+/** Pure replay uses captured text/positions/hash; it does not re-execute PDF/OCR. */
 export function replayTrace(trace: Trace, pack: RulePack = DEMO_RULE_PACK): {pass: boolean; reason?: string} {
   if (trace.ruleHash !== fingerprint(pack) || trace.ruleVersion !== pack.version || trace.promptVersion !== PROMPT_VERSION || trace.toolContractVersion !== TOOL_CONTRACT_VERSION) return {pass: false, reason: 'VERSION_DRIFT: rerun evaluation with new baseline'};
   let result: Result;

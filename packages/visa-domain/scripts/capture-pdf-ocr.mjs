@@ -1,0 +1,19 @@
+// Documentation view rendered from the actual synthetic OCR report, not a product UI.
+import { chromium } from '@playwright/test';
+import {readFileSync,mkdirSync} from 'node:fs';
+import {resolve,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../../..',import.meta.url));
+const report=JSON.parse(readFileSync(join(root,'docs/pdf-ocr-report.json'),'utf8'));
+const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{})});
+try {
+  const page=await browser.newPage({viewport:{width:1440,height:1020},deviceScaleFactor:1});
+  const scan=report.snapshots.find(s=>s.sample==='passport-scan.pdf');
+  const rows=report.snapshots.map(s=>`<tr><td>${escape(s.sample)}</td><td>${escape(s.methods.join(' / '))}</td><td class="${s.status}">${escape(s.status.toUpperCase())}</td><td>${s.review==='required'?'需要本地人工复核':s.review==='not required'?'文本层提取':'合成演示模拟复核'}</td></tr>`).join('');
+  const fields=scan.fields.map(f=>`<tr><td>${escape(f.name)}</td><td>${escape(f.value)}</td><td>${escape(f.location)}</td><td>${f.confidence}</td></tr>`).join('');
+  await page.setContent(`<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;padding:42px 56px;background:#f3f6fb;color:#17263b;font-family:"Microsoft YaHei",sans-serif}header{display:flex;justify-content:space-between}small{color:#355fd5;letter-spacing:2px;font-weight:700}.badge{padding:8px 16px;border-radius:20px;color:#355fd5;background:#e6edff}h1{font-size:34px;margin:18px 0 10px}p{color:#637185;line-height:1.8}section{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:24px 0}article{background:white;padding:22px;border:1px solid #dce4f0;border-radius:16px}h2{margin:0 0 15px;font-size:19px}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:13px 8px;text-align:left;border-bottom:1px solid #edf0f7}th{color:#355fd5;background:#f3f6fb}.pass{color:#148068;font-weight:700}.blocked{color:#bd5847;font-weight:700}code{font-family:Consolas,monospace;font-size:13px;overflow-wrap:anywhere}.metrics{display:flex;gap:18px}.metrics div{background:white;border:1px solid #dce4f0;border-radius:12px;padding:16px 25px}b{font-size:28px;color:#355fd5}.hint{background:#e6edff;border-radius:12px;padding:16px 22px;color:#355fd5}footer{font-size:12px;color:#68778f}</style><header><small>VISAFLOW · LOCAL PDF / OCR</small><span class="badge">实际运行报告 · 合成材料</span></header><h1>从原件提取，到证据核验</h1><p>PDF.js 文本层提取 + 本地 Tesseract OCR。保留原文、页码、坐标与置信度。<br>以下数据来自真实执行的合成样例；未调用模型，人工复核为演示模拟。</p><div class="metrics"><div><b>4</b> 文件格式</div><div><b>${report.replayed}</b> Trace 回放一致</div><div><b>SHA-256</b> 原件字节校验</div></div><section><article><h2>实际核验状态</h2><table><tr><th>输入 / 阶段</th><th>提取方式</th><th>状态</th><th>复核</th></tr>${rows}</table></article><article><h2>扫描 PDF · 实际 OCR 字段</h2><table><tr><th>字段</th><th>识别值</th><th>位置</th><th>行分数</th></tr>${fields}</table><p>证件号原件坐标（px）：<br><code>${escape(JSON.stringify(scan.fields.find(f=>f.name==='passportNumber').bbox))}</code></p><p>原件哈希：<br><code>${escape(scan.sourceHash)}</code></p></article></section><p class="hint">OCR_REVIEW_REQUIRED → 操作员核对原件 → review_material → 重新 verify<br>复核不绕过过期、字段格式和跨文件一致性检查；Agent 无权确认复核。</p><footer>来源：docs/pdf-ocr-report.json · packages/visa-domain/scripts/demo-pdf-ocr.ts<br>当前支持明确标签的材料；不代表护照版面、MRZ、手写或任意复杂表格识别。行分数不是字段正确概率。</footer>`);
+  await page.evaluate(()=>document.fonts.ready);
+  mkdirSync(join(root,'docs/screenshots'),{recursive:true});
+  await page.screenshot({path:resolve(root,'docs/screenshots/pdf-ocr.png'),fullPage:true});
+} finally {await browser.close();}

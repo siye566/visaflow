@@ -1,0 +1,6 @@
+Tesseract OCR language data (eng, chi_sim)
+Source: https://github.com/tesseract-ocr/tessdata_fast
+Revision: 87416418657359cb625c412a48b6e1d6d41c29bd
+License: Apache-2.0; see tessdata-fast-LICENSE.
+These language models are maintained by the Tesseract project and its contributors.
+Models are downloaded separately; customer materials are not included.

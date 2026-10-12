@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
 import { DEMO_RULE_PACK, validateRulePack, validDate, type RulePack } from './rules.ts';
+import { fieldsFromExtraction, type Extraction } from './document.ts';
 
-export const PROMPT_VERSION = 'visaflow-2';
-export const TOOL_CONTRACT_VERSION = '1.0.0';
-export const ACTIONS = ['read', 'intake', 'judge_type', 'confirm_type', 'checklist', 'parse_material', 'verify', 'fill_template', 'approve'] as const;
+export const PROMPT_VERSION = 'visaflow-3';
+export const TOOL_CONTRACT_VERSION = '1.1.0';
+export const ACTIONS = ['read', 'intake', 'judge_type', 'confirm_type', 'checklist', 'parse_material', 'review_material', 'verify', 'fill_template', 'approve'] as const;
 export type Action = typeof ACTIONS[number];
 export type Stage = 'intake' | 'type-judgment' | 'checklist' | 'verification' | 'remediation';
-export interface Field { name: string; value: string; location: string }
-export interface Material { id: string; kind: string; file: string; hash: string; fields: Field[]; issues: {field: string; message: string; severity: 'error'}[] }
+export interface Field { name: string; value: string; location: string; bbox?: [number, number, number, number]; confidence?: number; sourceText?: string; method?: 'pdf-text' | 'ocr' }
+export interface Material { id: string; kind: string; file: string; hash: string; hashScheme?: 'sha256-bytes'; fields: Field[]; extraction?: Extraction; review?: {by: string; at: string; sourceHash: string}; issues: {field: string; message: string; severity: 'error'}[] }
 export interface CaseState {
   schemaVersion: 1; revision: number; stage: Stage; isDemo: boolean;
   applicant?: {name: string; nationality: string}; destination?: string; travelPurpose?: string; plannedDepartureDate?: string; stayDays?: number;
@@ -23,7 +24,7 @@ export interface CaseState {
 }
 export interface Request { action: Action; expectedRevision?: number; input?: Record<string, unknown>; modelInput?: string }
 export interface Principal { role: 'agent' | 'applicant' | 'reviewer'; name: string }
-export interface DocumentInput {file: string; content: string}
+export interface DocumentInput {file: string; content: string; sourceHash?: string; extraction?: Extraction}
 export interface Result { state: CaseState; output: Record<string, unknown>; allowedActions: Action[] }
 export function fingerprint(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -44,6 +45,7 @@ export function allowedActions(state: CaseState, principal: Principal): Action[]
     const confirmation = actions.indexOf('confirm_type');
     if (confirmation >= 0) actions.splice(confirmation, 1);
   }
+  if (principal.role !== 'agent' && ['verification', 'remediation'].includes(state.stage) && state.materials.some(m => m.extraction?.requiresReview)) actions.push('review_material');
   if (state.verification?.status === 'pass') {
     actions.push('fill_template');
     if (principal.role === 'reviewer') actions.push('approve');
@@ -61,7 +63,8 @@ function evidence(state: CaseState, pack: RulePack, id: string, snippet: string)
 /** Locations are computed from actual structured files; model-provided locations are ignored. */
 export function parseDocument(document: DocumentInput): Field[] {
   if (Buffer.byteLength(document.content) > 1024 * 1024) throw new Error('DOCUMENT_TOO_LARGE');
-  if (document.file.endsWith('.json')) {
+  if (document.extraction) return fieldsFromExtraction(document.extraction);
+  if (document.file.toLowerCase().endsWith('.json')) {
     const parsed: unknown = JSON.parse(document.content);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('DOCUMENT_INVALID: expected flat field object');
     if (Object.keys(parsed).length === 0 || Object.keys(parsed).length > 100) throw new Error('DOCUMENT_INVALID: empty or too many fields');
@@ -70,7 +73,7 @@ export function parseDocument(document: DocumentInput): Field[] {
       return {name, value: value.trim(), location: `$.${name}`};
     });
   }
-  if (!document.file.endsWith('.txt')) throw new Error('UNSUPPORTED_FORMAT: use JSON or key:value TXT; PDF/OCR adapter is not implemented');
+  if (!document.file.toLowerCase().endsWith('.txt')) throw new Error('DOCUMENT_EXTRACTION_REQUIRED: binary files must pass the local adapter');
   const fields: Field[] = [];
   document.content.split(/\r?\n/).forEach((line, index) => {
     if (!line.trim()) return;
@@ -81,15 +84,20 @@ export function parseDocument(document: DocumentInput): Field[] {
   if (!fields.length || fields.length > 100) throw new Error('DOCUMENT_INVALID: empty or too many fields');
   return fields;
 }
-export function execute(before: CaseState, request: Request, principal: Principal,
-  pack: RulePack = DEMO_RULE_PACK, now = '2026-10-04', document?: DocumentInput): Result {
+/** Check authorization/revision before doing expensive file extraction. */
+export function validateRequest(before: CaseState, request: Request, principal: Principal, pack: RulePack, now: string): void {
   validateRulePack(pack, now);
   if (before.schemaVersion !== 1 || before.rulePack.hash !== fingerprint(pack)) throw new Error('RULE_PACK_CHANGED: explicit new case required');
   if (!ACTIONS.includes(request.action)) throw new Error('UNKNOWN_ACTION');
   if (request.action === 'approve' && principal.role !== 'reviewer') throw new Error('APPROVAL_FORBIDDEN: trusted local reviewer required');
   if (request.action === 'confirm_type' && principal.role === 'agent') throw new Error('CONFIRMATION_REQUIRED: applicant/reviewer local confirmation');
+  if (request.action === 'review_material' && principal.role === 'agent') throw new Error('REVIEW_FORBIDDEN: trusted local applicant/reviewer required');
   if (!allowedActions(before, principal).includes(request.action)) throw new Error(`STAGE_FORBIDDEN: ${request.action} at ${before.stage}`);
   if (request.action !== 'read' && request.expectedRevision !== before.revision) throw new Error('REVISION_CONFLICT: read current state before mutation');
+}
+export function execute(before: CaseState, request: Request, principal: Principal,
+  pack: RulePack = DEMO_RULE_PACK, now = '2026-10-04', document?: DocumentInput): Result {
+  validateRequest(before, request, principal, pack, now);
   const state = structuredClone(before);
   const input = request.input ?? {};
   const output: Record<string, unknown> = {};
@@ -121,12 +129,22 @@ export function execute(before: CaseState, request: Request, principal: Principa
   } else if (request.action === 'parse_material') {
     const kind = requireString(input.kind, 'kind');
     if (!state.checklist.some(m => m.id === kind) || !document) throw new Error('DOCUMENT_REQUIRED: type-specific kind and source file required');
-    const material: Material = {id: kind, kind, file: document.file, hash: fingerprint(document.content), fields: parseDocument(document), issues: []};
+    const material: Material = {id: kind, kind, file: document.file, hash: document.sourceHash ?? fingerprint(document.content),
+      ...(document.sourceHash ? {hashScheme: 'sha256-bytes' as const} : {}), fields: parseDocument(document),
+      ...(document.extraction ? {extraction: document.extraction} : {}), issues: []};
     state.materials = state.materials.filter(m => m.kind !== kind).concat(material);
     state.checklist.find(m => m.id === kind)!.status = 'uploaded';
     // Any changed document invalidates ALL previous checks and approval. No stale pass.
     state.verification = undefined; state.approval = {status: 'pending'}; state.conflicts = [];
     for (const item of state.checklist) if (item.status === 'verified' || item.status === 'conflict') item.status = state.materials.some(m => m.kind === item.id) ? 'uploaded' : 'missing';
+  } else if (request.action === 'review_material') {
+    const material = state.materials.find(m => m.kind === input.kind);
+    if (!material?.extraction?.requiresReview || input.sourceHash !== material.hash) throw new Error('REVIEW_SOURCE_MISMATCH: read material and supply current sourceHash');
+    if (!principal.name.trim() || input.confirmed !== true) throw new Error('REVIEW_CONFIRMATION_REQUIRED: confirm all extracted values against the original');
+    material.review = {by: principal.name, at: now, sourceHash: material.hash};
+    state.verification = undefined; state.approval = {status: 'pending'};
+    for (const item of state.checklist) if (item.status === 'verified' || item.status === 'conflict') item.status = state.materials.some(m => m.kind === item.id) ? 'uploaded' : 'missing';
+    state.conflicts = [];
   } else if (request.action === 'verify') {
     const findings: string[] = [];
     state.conflicts = [];
@@ -135,6 +153,10 @@ export function execute(before: CaseState, request: Request, principal: Principa
       const material = state.materials.find(m => m.kind === rule.id);
       const item = state.checklist.find(m => m.id === rule.id)!;
       if (!material) { item.status = 'missing'; if (rule.required) findings.push(`missing:${rule.id}`); continue; }
+      if (material.extraction?.requiresReview && material.review?.sourceHash !== material.hash) {
+        material.issues.push({field: '*', message: 'OCR requires local human review', severity: 'error'});
+        findings.push(`${rule.id}:OCR_REVIEW_REQUIRED`);
+      }
       for (const field of rule.fields) {
         const value = material.fields.find(f => f.name === field)?.value;
         let problem: string | undefined;
@@ -178,7 +200,8 @@ export function execute(before: CaseState, request: Request, principal: Principa
   output.evidenceRefs = state.evidence.map(e => e.id);
   output.ruleVersion = pack.version;
   output.ruleHash = state.rulePack.hash;
-  output.fileLocations = state.materials.map(m => ({file: m.file, fields: m.fields.map(f => ({name: f.name, location: f.location}))}));
+  output.fileLocations = state.materials.map(m => ({file: m.file, sourceHash: m.hash, extraction: m.extraction ?? null, review: m.review ?? null,
+    fields: m.fields.map(f => ({name: f.name, location: f.location, bbox: f.bbox, confidence: f.confidence, method: f.method}))}));
   output.disclaimer = pack.isDemo ? 'Fictional engineering fixture; no real visa eligibility determination.' : 'Document pre-review only; issuing authority decides.';
   return {state, output, allowedActions: allowedActions(state, principal)};
 }
