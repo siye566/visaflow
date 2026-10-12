@@ -1,6 +1,13 @@
 // Public test data only: fictional person, document number and destination.
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+// Use the same bundled Latin font on all platforms; never depend on a fallback.
+GlobalFonts.registerFromPath(fileURLToPath(new URL('../node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf', import.meta.url)), 'VisaFixtureLatin');
+const cjkPath = process.platform === 'win32' ? join(process.env.SystemRoot || 'C:\\Windows', 'Fonts/msyh.ttc') : '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc';
+if (existsSync(cjkPath)) GlobalFonts.registerFromPath(cjkPath, 'VisaFixtureCJK');
 export const LABELLED_LINES = ['Name: LIN DEMO', 'Passport number: E00000001', 'Date of birth: 1998-01-02', 'Expiry date: 2030-12-31', 'Departure date: 2026-12-01'];
 export async function textPdf(pages: string[][] = [LABELLED_LINES]): Promise<Buffer> {
   const doc = await PDFDocument.create();
@@ -16,8 +23,7 @@ export async function textPdf(pages: string[][] = [LABELLED_LINES]): Promise<Buf
 export function scanImage(lines = LABELLED_LINES, format: 'png' | 'jpeg' = 'png'): Buffer {
   const canvas = createCanvas(1800, 1050); const context = canvas.getContext('2d');
   context.fillStyle = 'white'; context.fillRect(0,0,canvas.width,canvas.height); context.fillStyle = 'black';
-  const cjkFont = GlobalFonts.has('Noto Sans CJK SC') ? 'Noto Sans CJK SC' : 'Microsoft YaHei';
-  context.font = `42px "${cjkFont}", sans-serif`;
+  context.font = '42px "VisaFixtureLatin", "VisaFixtureCJK", sans-serif';
   context.fillText('SYNTHETIC MATERIAL / DEMO ONLY', 80, 110);
   lines.forEach((line,index) => context.fillText(line, 80, 230+index*115));
   return format === 'png' ? canvas.toBuffer('image/png') : canvas.toBuffer('image/jpeg');
