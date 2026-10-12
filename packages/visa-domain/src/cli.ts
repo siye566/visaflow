@@ -4,22 +4,39 @@ import { tmpdir } from 'node:os';
 import { demo } from './demo.ts';
 import { runCase, replayTrace, loadPack, type Trace } from './store.ts';
 import type { Request, Principal } from './engine.ts';
+import { describeError, explainCode } from './errors.ts';
+
+const HELP = 'VisaFlow CLI: demo [normal|missing|expired|name-conflict|passport-conflict|date-conflict|birth-conflict|invalid-date|ambiguous]\ncall <case-dir> <request.json> [agent|applicant|reviewer] [operator-name]\nbatch <case-dir> <requests.jsonl> [role] [operator-name]\nreplay <case-dir>\ndoctor\nexplain <ERROR_CODE>\nLocal roles are operator assertions, not multi-user authentication. Trace files contain document data; keep private.';
+let completedRequests = 0;
 
 async function main() {
   const [command, ...args] = process.argv.slice(2);
-  if (command === 'demo') {
+  if (command === 'doctor') {
+    const [major, minor] = process.versions.node.split('.').map(Number);
+    const ok = major! > 22 || (major === 22 && minor! >= 18);
+    console.log(JSON.stringify({ok, node: process.versions.node,
+      action: ok ? 'Run demo normal; no model key or full Electron install is required.' : 'Install Node 22.18+.',
+      scope: 'Runtime version only; filesystem permissions and demo execution are not yet verified.'}));
+    if (!ok) process.exitCode = 1;
+  } else if (command === 'explain') {
+    if (!args[0]) throw new Error('CLI_USAGE');
+    console.log(JSON.stringify(explainCode(args[0])));
+  } else if (command === 'demo') {
     const root = await mkdtemp(join(tmpdir(), 'visaflow-demo-'));
     const result = await demo(root, args[0]);
     console.log(JSON.stringify({caseDirectory: root, ...result}, null, 2));
   } else if (command === 'call' || command === 'batch') {
     const [directory, inputFile, role = 'agent', name = 'local-operator'] = args;
-    if (!directory || !inputFile || !['agent', 'applicant', 'reviewer'].includes(role)) throw new Error('Usage: call|batch <case-dir> <request.json|requests.jsonl> [agent|applicant|reviewer] [operator-name]');
+    if (!directory || !inputFile || !['agent', 'applicant', 'reviewer'].includes(role)) throw new Error('CLI_USAGE');
     const source = await readFile(resolve(inputFile), 'utf8');
     const requests: Request[] = command === 'batch' ? source.split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line)) : [JSON.parse(source)];
     const principal = {role, name} as Principal;
-    for (const request of requests) console.log(JSON.stringify(await runCase(resolve(directory), request, principal)));
+    for (const request of requests) {
+      console.log(JSON.stringify(await runCase(resolve(directory), request, principal)));
+      completedRequests++;
+    }
   } else if (command === 'replay') {
-    if (!args[0]) throw new Error('Usage: replay <case-dir>');
+    if (!args[0]) throw new Error('CLI_USAGE');
     const root = resolve(args[0]);
     const pack = await loadPack(root, new Date().toISOString().slice(0, 10));
     const files = (await readdir(join(root, 'visa-traces'))).filter(file => file.endsWith('.json'));
@@ -33,7 +50,12 @@ async function main() {
     console.log(JSON.stringify({total: files.length, failed}));
     if (failed) process.exitCode = 1;
   } else {
-    console.log('VisaFlow CLI: demo [normal|missing|expired|name-conflict|passport-conflict|date-conflict|birth-conflict|invalid-date|ambiguous]\ncall <case-dir> <request.json> [agent|applicant|reviewer] [operator-name]\nbatch <case-dir> <requests.jsonl> [role] [operator-name]\nreplay <case-dir>\nLocal roles are operator assertions, not multi-user authentication. Trace files contain document data; keep private.');
+    if (command && !['help', '--help', '-h'].includes(command)) throw new Error('CLI_USAGE');
+    console.log(HELP);
   }
 }
-main().catch(error => {console.error(error.message); process.exitCode = 1;});
+main().catch(error => {
+  console.error(JSON.stringify({ok: false, error: describeError(error), completedRequests}));
+  process.exitCode = 1;
+});
+
